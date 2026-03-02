@@ -1,9 +1,12 @@
-class Database:
-    """Storage class for Notion databases."""
+import os
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
-    def __init__(self, db_id: str, props: dict): 
-        self.id = db_id;
-        self.properties = props;
+class Property:
+    """A class which helps process Notion database properties."""
+
+    def __init__(self, prop: dict):
+        self.property = prop;
 
     def _checked(self, property: dict, value: str):
         """Checks if the property exists before outputting it."""
@@ -12,36 +15,57 @@ class Database:
         else:
             return property.get(value)
 
-    def _checkbox(self, property: dict):
+    def _checkbox(self, property: dict) -> bool:
         """Retrieves the value of a checkbox property."""
         return bool(self._checked(property, "checkbox"))
 
-    def _created_by(self, property: dict):
+    def _created_by(self, property: dict) -> str:
         """Retrieves the value of a created_by property."""
         user = self._checked(property, "created_by")
         return self._checked(user, "id")
+    
+    def _parseDateTime(self, datetime_str: str) -> datetime:
+        if not datetime_str:
+            return None
 
-    def _created_time(self, property: dict):
+        local_tz = ZoneInfo(os.getenv("TZ", "America/Chicago"))
+        if isinstance(datetime_str, datetime):
+            if datetime_str.tzinfo:
+                return datetime_str.astimezone(local_tz)
+            else:
+                datetime_str.replace(tzinfo=local_tz)
+
+        if isinstance(datetime_str, str) and len(datetime_str) == 10:
+            dt = datetime.strptime(datetime_str, "%Y-%m-%d")
+            return dt.replace(tzinfo=local_tz)
+        elif isinstance(datetime_str, str):
+            dt = datetime.fromisoformat(datetime_str.replace("Z", "+00:00"))
+            return dt.astimezone(local_tz)
+        else:
+            return None
+
+    def _created_time(self, property: dict) -> datetime:
         """Retrieves the value of a created_time property."""
-        return self._checked(property, "created_time")
+        time = self._checked(property, "created_time")
+        return self._parseDateTime(time)
 
-    def _date(self, property: dict):
+    def _date(self, property: dict) -> dict:
         """Retrieves the value of a date property."""
         date = self._checked(property, "date")
-
         if not date:
             return None
+        
         return {
-            "start": date.get("start"),
-            "end": date.get("end"),
+            "start": self._parseDateTime(date.get("start")),
+            "end": self._parseDateTime(date.get("end")),
             "time_zone": date.get("time_zone"),
         }
 
-    def _email(self, property: dict):
+    def _email(self, property: dict) -> str:
         """Retrieves the value of an email property."""
-        return self._checked(property, "email")
+        return str(self._checked(property, "email"))
 
-    def _files(self, property: dict):
+    def _files(self, property: dict) -> list:
         """Retrieves the value of a files property."""
         files = property.get("files") if property else []
         files = self._checked(property, "files")
@@ -56,11 +80,28 @@ class Database:
                 out.append(f["file"]["url"])
         
         return out
+    
+    def _formula(self, property: dict):
+        """Retrieves the value of a formula property."""
+        formula = self._checked(property, "formula")
+        if not formula:
+            return None
 
-    def _last_edited_by(self, property: dict):
+        if "number" in formula:
+            return int(formula["number"])
+        elif "string" in formula:
+            return str(formula["string"])
+        elif "boolean" in formula:
+            return bool(formula["boolean"])
+        elif "date" in formula and formula["date"] is not None:
+            return datetime.fromisoformat(formula["date"]["start"])
+        else:
+            return None
+
+    def _last_edited_by(self, property: dict) -> str:
         """Retrieves the value of a last_edited_by property."""
         user = self._checked(property, "last_edited_by")
-        return self._checked(user, "id")
+        return str(self._checked(user, "id"))
 
     def _last_edited_time(self, property: dict):
         """Retrieves the value of a last_edited_time property."""
@@ -78,7 +119,7 @@ class Database:
         """Retrieves the value of a number property."""
         return self._checked(property, "number")
 
-    def _people(self, property: dict):
+    def _people(self, property: dict) -> list:
         """Retrieves the value of a people property."""
         people = self._checked(property, "people")
         if not people:
@@ -86,9 +127,9 @@ class Database:
 
         return [p.get("id") for p in people]
 
-    def _phone_number(self, property: dict):
+    def _phone_number(self, property: dict) -> str:
         """Retrieves the value of a phone_number property."""
-        return self._checked(property, "phone_number")
+        return str(self._checked(property, "phone_number"))
 
     def _place(self, property: dict):
         """Retrieves the value of a place property."""
@@ -156,12 +197,9 @@ class Database:
         """Retrieves the value of a URL property."""
         return self._checked(property, "url")
 
-    def get_value(self, property: dict):
+    def get_value(self):
         """Retrieves the value of a property dynamically by type."""
-        if not property:
-            return None
-
-        handler = getattr(self, f"_{property['type']}", None)
+        handler = getattr(self, f"_{self.property['type']}", None)
         if handler:
-            return handler(property)
+            return handler(self.property)
         return None

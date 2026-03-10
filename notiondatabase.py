@@ -113,7 +113,7 @@ class Property:
         if not values:
             values = []
 
-        return [v["name"] for v in values]
+        return values
 
     def _number(self, property: dict):
         """Retrieves the value of a number property."""
@@ -125,7 +125,7 @@ class Property:
         if not people:
             people = []
 
-        return [p.get("id") for p in people]
+        return [{"id": p.get("id")} for p in people]
 
     def _phone_number(self, property: dict) -> str:
         """Retrieves the value of a phone_number property."""
@@ -141,7 +141,7 @@ class Property:
         if not relations:
             relations = []
 
-        return [r["id"] for r in relations]
+        return relations
 
     def _rich_text(self, property: dict):
         """Retrieves the value of a rich_text property."""

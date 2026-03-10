@@ -40,6 +40,7 @@ def reset_overdue_tasks():
         if not deadline or not deadline.get("start"):
             continue
 
+        task_name = Property(props.get("task")).get_value()
         schedule = Property(props.get("schedule")).get_value()
         week_rot = Property(props.get("week_rot")).get_value()
         index = Property(props.get("index")).get_value()
@@ -59,6 +60,7 @@ def reset_overdue_tasks():
             update_payload["assigned"] = {"people": [people[new_index]]}
 
         NOTION.pages.update(page_id=task["id"], properties=update_payload)
+        print(f"{task_name} task updated.")
         updated += 1
 
     return updated

@@ -1,12 +1,22 @@
 import os
+import sys
 from pprint import pprint
 from datetime import datetime, timezone, timedelta
+
 from notion_client import Client
+from loguru import logger
 
 from notiondatabase import Property
 
 TASKS_DB_ID = os.environ["TASKS_DB_ID"]
 NOTION = Client(auth=os.environ["NOTION_TOKEN"])
+
+def configure_logger():
+    logger.remove()
+    logger.add(
+        sys.stdout,
+        level="INFO",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level} | {message}")
 
 def overdue_tasks(cutoff_iso: str):
     start_cursor = None
@@ -61,12 +71,17 @@ def reset_overdue_tasks():
 
         NOTION.pages.update(page_id=task["id"], properties=update_payload)
         print(f"{task_name} task updated.")
+        logger.info(
+            f"{task_name} task updated.", 
+            prev_index=index,
+            prev_deadline=curr_deadline)
         updated += 1
 
     return updated
 
 def main():
-    print(f"{reset_overdue_tasks()} tasks were reset.")
+    configure_logger()
+    logger.info(f"{reset_overdue_tasks()} tasks were reset. --")
 
 
 if __name__ == "__main__":

@@ -27,7 +27,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m uv install
+          uv sync
 
       - name: Run Task Reset
         run: python main.py

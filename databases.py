@@ -2,12 +2,11 @@ from datetime import datetime, timezone, timedelta
 
 from notion import Property
 
-class TasksDatabase:
-    """A class which interacts with the tasks database."""
-
-    def __init__(self, client, tasks_db_id, logger):
+class Database:
+    """A class which interacts with Notion databases."""
+    def __init__(self, client, db_id, logger):
         self.notion_app = client
-        self.id = tasks_db_id
+        self.id = db_id
         self.logger = logger
 
     def to_date(self, dt: datetime) -> str:
@@ -36,6 +35,12 @@ class TasksDatabase:
             properties=updated_properties)
         
         return response
+
+class TasksDatabase(Database):
+    """A class which interacts with the tasks database."""
+
+    def __init__(self, client, tasks_db_id, logger):
+        super().__init__(client, tasks_db_id, logger)
 
     def overdue_tasks(self):
         """Retrieves the overdue tasks."""

@@ -19,6 +19,29 @@ class Database:
             A date in the form of a string.
         """
         return dt.date().isoformat()
+    
+    def to_notion_people(self, people_ids: list, indices=None) -> list:
+        """Returns a list of SDK-compliant people objects to update to.
+
+        Args:
+            people: The people IDs.
+            indices: Indices of people to return.
+
+        Returns:
+            The compliant version of the list.
+        """
+        if not people_ids:
+            people_ids = []
+
+        selected = people_ids
+        if isinstance(indices, int):
+            selected = [people_ids[indices % len(people_ids)]]
+        elif isinstance(indices, list):
+            selected = [people_ids[i % len(people_ids)] for i in indices]
+        else:
+            raise TypeError(f"indices must be int, list, or None, got {type(indices)}")
+
+        return [{"object": "group", "id": person["id"]} for person in selected]
 
     def update_database(self, page_key: str, updated_properties: dict) -> dict:
         """Updates a Notion page within a database.
@@ -86,7 +109,7 @@ class TasksDatabase(Database):
 
             updated_properties = {
                 "status": {"status": {"name": "NS"}},
-                "deadline": {"date": {"start": new_deadline.date().isoformat()}}
+                "deadline": {"date": {"start": self.to_date(new_deadline)}}
             }
 
             if "alt" in schedule.lower() and len(people) > 0:
@@ -94,7 +117,7 @@ class TasksDatabase(Database):
                 if assigned:
                     current_assigned = assigned[0]
                     new_index = (people.index(current_assigned) + 1) % len(people)
-                    updated_properties["assigned"] = {"people": [people[new_index]]}
+                    updated_properties["assigned"] = {"people": self.to_notion_people(people, new_index)}
 
             self.update_database(task["id"], updated_properties)
             self.logger.bind(task=task_name) \

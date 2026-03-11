@@ -65,7 +65,7 @@ class TasksDatabase(Database):
     def __init__(self, client, tasks_db_id, logger):
         super().__init__(client, tasks_db_id, logger)
 
-    def overdue_tasks(self):
+    def _overdue_tasks(self):
         """Retrieves the overdue tasks."""
         start_cursor = None
         cutoff = datetime.now(timezone.utc) + timedelta(hours=1)
@@ -93,7 +93,7 @@ class TasksDatabase(Database):
         """Resets the overdue tasks."""
         updated = 0
 
-        for task in self.overdue_tasks():
+        for task in self._overdue_tasks():
             props = task.get("properties", {})
             deadline = Property(props.get("deadline")).get_value()
             if not deadline or not deadline.get("start"):

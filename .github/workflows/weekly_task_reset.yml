@@ -30,4 +30,4 @@ jobs:
           uv sync
 
       - name: Run Task Reset
-        run: python main.py
+        run: uv run main.py

@@ -1,27 +1,47 @@
-import os
 from datetime import datetime, timezone, timedelta
 
 from notion import Property
 
 class TasksDatabase:
     """A class which interacts with the tasks database."""
-    def __init__(self, client, logger):
+
+    def __init__(self, client, tasks_db_id, logger):
         self.notion_app = client
-        self.id = os.environ["TASKS_DB_ID"]
+        self.id = tasks_db_id
         self.logger = logger
 
-    def to_date(self, dt: datetime):
+    def to_date(self, dt: datetime) -> str:
+        """Converts a datetime to a date.
+
+        Args:
+            dt: The datetime object.
+
+        Returns:
+            A date in the form of a string.
+        """
         return dt.date().isoformat()
 
-    def update_database(self, page_key: str, updated_properties: dict):
+    def update_database(self, page_key: str, updated_properties: dict) -> dict:
+        """Updates a Notion page within a database.
+
+        Args:
+            page_key: The primary key/title of the page.
+            updated_properties: The properties to update to.
+
+        Returns:
+            The SDK response.
+        """
         response = self.notion_app.pages.update(
             page_id=page_key, 
             properties=updated_properties)
         
         return response
 
-    def overdue_tasks(self, cutoff_iso: str):
+    def overdue_tasks(self):
+        """Retrieves the overdue tasks."""
         start_cursor = None
+        cutoff = datetime.now(timezone.utc) + timedelta(hours=1)
+        cutoff_iso = cutoff.isoformat()
 
         while True:
             response = self.notion_app.data_sources.query(
@@ -42,11 +62,10 @@ class TasksDatabase:
             start_cursor = response.get("next_cursor")
 
     def reset_overdue_tasks(self):
+        """Resets the overdue tasks."""
         updated = 0
-        cutoff = datetime.now(timezone.utc) + timedelta(hours=1)
-        cutoff_iso = cutoff.isoformat()
 
-        for task in self.overdue_tasks(cutoff_iso):
+        for task in self.overdue_tasks():
             props = task.get("properties", {})
             deadline = Property(props.get("deadline")).get_value()
             if not deadline or not deadline.get("start"):
@@ -55,7 +74,6 @@ class TasksDatabase:
             task_name = str(Property(props.get("task")).get_value())
             schedule = str(Property(props.get("schedule")).get_value())
             week_rot = int(Property(props.get("week_rot")).get_value())
-            # index = Property(props.get("index")).get_value()
             people = list(Property(props.get("people")).get_value())
 
             curr_deadline = datetime.fromisoformat(str(deadline["start"]).replace("Z", "+00:00"))

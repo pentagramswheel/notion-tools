@@ -5,6 +5,8 @@ from zoneinfo import ZoneInfo
 class Property:
     """A class which helps process Notion database properties."""
 
+    _LOCAL_TZ = ZoneInfo(os.getenv("TZ", "America/Chicago"))
+
     def __init__(self, prop: dict):
         self.property = prop;
 
@@ -28,19 +30,18 @@ class Property:
         if not datetime_str:
             return None
 
-        local_tz = ZoneInfo(os.getenv("TZ", "America/Chicago"))
         if isinstance(datetime_str, datetime):
             if datetime_str.tzinfo:
-                return datetime_str.astimezone(local_tz)
+                return datetime_str.astimezone(self._LOCAL_TZ)
             else:
-                datetime_str.replace(tzinfo=local_tz)
+                datetime_str.replace(tzinfo=self._LOCAL_TZ)
 
         if isinstance(datetime_str, str) and len(datetime_str) == 10:
             dt = datetime.strptime(datetime_str, "%Y-%m-%d")
-            return dt.replace(tzinfo=local_tz)
+            return dt.replace(tzinfo=self._LOCAL_TZ)
         elif isinstance(datetime_str, str):
             dt = datetime.fromisoformat(datetime_str.replace("Z", "+00:00"))
-            return dt.astimezone(local_tz)
+            return dt.astimezone(self._LOCAL_TZ)
         else:
             return None
 

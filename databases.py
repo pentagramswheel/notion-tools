@@ -34,6 +34,7 @@ class Database:
             people_ids = []
 
         selected = people_ids
+        
         if isinstance(indices, int):
             selected = [people_ids[indices % len(people_ids)]]
         elif isinstance(indices, list):
@@ -89,41 +90,53 @@ class TasksDatabase(Database):
 
             start_cursor = response.get("next_cursor")
 
+    def _get_property(self, properties: dict, key=None):
+        """Retrieve a property's value via its key if any."""
+        if properties and key:
+            return Property(properties.get(key)).get_value()
+        else:
+            raise KeyError("Task properties could not be found.")
+
     def reset_overdue_tasks(self):
         """Resets the overdue tasks."""
         updated = 0
 
-        for task in self._overdue_tasks():
-            props = task.get("properties", {})
-            deadline = Property(props.get("deadline")).get_value()
-            if not deadline or not deadline.get("start"):
-                continue
+        try:
+            for task in self._overdue_tasks():
+                props = task.get("properties", {})
+                deadline = Property(props.get("deadline")).get_value()
+                if not deadline or not deadline.get("start"):
+                    continue
 
-            task_name = str(Property(props.get("task")).get_value())
-            schedule = str(Property(props.get("schedule")).get_value())
-            week_rot = int(Property(props.get("week_rot")).get_value())
-            people = list(Property(props.get("people")).get_value())
+                task_name = str(Property(props.get("task")).get_value())
+                schedule = str(Property(props.get("schedule")).get_value())
+                week_rot = int(Property(props.get("week_rot")).get_value())
+                people = list(Property(props.get("people")).get_value())
 
-            curr_deadline = datetime.fromisoformat(str(deadline["start"]).replace("Z", "+00:00"))
-            new_deadline = curr_deadline + timedelta(weeks=week_rot)
+                curr_deadline = datetime.fromisoformat(str(deadline["start"]).replace("Z", "+00:00"))
+                new_deadline = curr_deadline + timedelta(weeks=week_rot)
 
-            updated_properties = {
-                "status": {"status": {"name": "NS"}},
-                "deadline": {"date": {"start": self.to_date(new_deadline)}}
-            }
+                updated_properties = {
+                    "status": {"status": {"name": "NS"}},
+                    "deadline": {"date": {"start": self.to_date(new_deadline)}}
+                }
 
-            if "alt" in schedule.lower() and len(people) > 0:
-                assigned = list(Property(props.get("assigned")).get_value())
-                if assigned:
-                    current_assigned = assigned[0]
-                    new_index = (people.index(current_assigned) + 1) % len(people)
-                    updated_properties["assigned"] = {"people": self.to_notion_people(people, new_index)}
+                if "alt" in schedule.lower() and len(people) > 0:
+                    assigned = list(Property(props.get("assigned")).get_value())
+                    if assigned:
+                        current_assigned = assigned[0]
+                        new_index = (people.index(current_assigned) + 1) % len(people)
+                        updated_properties["assigned"] = {"people": self.to_notion_people(people, new_index)}
 
-            self.update_database(task["id"], updated_properties)
-            self.logger.bind(task=task_name) \
-                .info("task_updated")
-            
-            updated += 1
+                self.update_database(task["id"], updated_properties)
+                self.logger.bind(task=task_name) \
+                    .info("task_updated")
+                
+                updated += 1
+        except TypeError as e:
+            self.logger.error("Type error found. Stopping reset.", e)
+        except KeyError as e:
+            self.logger.error("Key error found. Stopping reset.", e)
 
         self.logger.bind(num_tasks=updated) \
             .info("db_updated")

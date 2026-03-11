@@ -10,8 +10,15 @@ class TasksDatabase:
         self.id = os.environ["TASKS_DB_ID"]
         self.logger = logger
 
+    def to_date(self, dt: datetime):
+        return dt.date().isoformat()
+
     def update_database(self, page_key: str, updated_properties: dict):
-        self.notion_app.pages.update(page_id=page_key, properties=updated_properties)
+        response = self.notion_app.pages.update(
+            page_id=page_key, 
+            properties=updated_properties)
+        
+        return response
 
     def overdue_tasks(self, cutoff_iso: str):
         start_cursor = None
@@ -45,11 +52,11 @@ class TasksDatabase:
             if not deadline or not deadline.get("start"):
                 continue
 
-            task_name = Property(props.get("task")).get_value()
-            schedule = Property(props.get("schedule")).get_value()
-            week_rot = Property(props.get("week_rot")).get_value()
-            index = Property(props.get("index")).get_value()
-            people = Property(props.get("people")).get_value()
+            task_name = str(Property(props.get("task")).get_value())
+            schedule = str(Property(props.get("schedule")).get_value())
+            week_rot = int(Property(props.get("week_rot")).get_value())
+            # index = Property(props.get("index")).get_value()
+            people = list(Property(props.get("people")).get_value())
 
             curr_deadline = datetime.fromisoformat(str(deadline["start"]).replace("Z", "+00:00"))
             new_deadline = curr_deadline + timedelta(weeks=week_rot)
@@ -59,17 +66,16 @@ class TasksDatabase:
                 "deadline": {"date": {"start": new_deadline.date().isoformat()}}
             }
 
-            if "alt" in str(schedule).lower() and len(people) > 0:
-                new_index = (int(index) + 1) % len(people)
-                updated_properties["index"] = {"number": new_index}
-                updated_properties["assigned"] = {"people": [people[new_index]]}
+            if "alt" in schedule.lower() and len(people) > 0:
+                assigned = list(Property(props.get("assigned")).get_value())
+                if assigned:
+                    current_assigned = assigned[0]
+                    new_index = (people.index(current_assigned) + 1) % len(people)
+                    updated_properties["assigned"] = {"people": [people[new_index]]}
 
             self.update_database(task["id"], updated_properties)
-            self.logger.bind(
-                task=task_name,
-                prev_index=index,
-                prev_deadline=curr_deadline.date().isoformat()
-            ).info("task_updated")
+            self.logger.bind(task=task_name) \
+                .info("task_updated")
             
             updated += 1
 

@@ -1,7 +1,5 @@
 import os
 import sys
-from pprint import pprint
-from datetime import datetime, timezone, timedelta
 
 from notion_client import Client
 from loguru import logger

@@ -1,0 +1,30 @@
+name: Weekly Task Reset
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # monday @ 3am CT, 9am UTC
+  workflow_dispatch: # allow manual run
+
+jobs:
+  run-task-reset:
+    runs-on: ubuntu-latest
+
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          python -m uv install
+
+      - name: Run Task Reset
+        run: python main.py

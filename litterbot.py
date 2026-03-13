@@ -1,55 +1,84 @@
-import os
 import asyncio
-import pprint
 
-from pylitterbot import Account
+from pylitterbot import Account, Robot
 
 from datetime import datetime, timedelta, timezone
 import re
 
-def is_weight_record(action: str) -> bool:
-    return action[0:19] == "Pet Weight Recorded"
+class Whisker:
+    """A class which interacts with Whisker Litter Robots."""
 
-def append_weight(cat_weights: list, name: str, timestamp: datetime, weight: float):
-    cat_weights.append({
-        "cat": name,
-        "timestamp": timestamp,
-        "weight_lbs": weight
-    })
+    def __init__(self):
+        self._account = Account()
 
-def get_recent_weights(activity_list) -> list:
-    cutoff = datetime.now(timezone.utc) - timedelta(days=1)
-    weights = []
+    def _is_weight_record(self, action: str) -> bool:
+        """Checks if an activity was a weight record.
 
-    for activity in activity_list:
-        if activity.timestamp < cutoff:
-            continue
+        Args:
+            actions: The activity's specific action.
 
-        action = activity.action
-        if isinstance(action, str) and is_weight_record(action):
-            match = re.search(r"([\d.]+)", action)
-            if match:
-                weight_lbs = float(match.group(1))
-                if weight_lbs > 11.5:
-                    append_weight(weights, "basmati", activity.timestamp, weight_lbs)
-                else:
-                    append_weight(weights, "jasmine", activity.timestamp, weight_lbs)
+        Returns:
+            True if a weight was recorded.
+            False otherwise.
+        """
+        return action[0:19] == "Pet Weight Recorded"
 
-    return weights
+    def _append_weight(self, cat_weights: list, name: str, 
+                      timestamp: datetime, weight: float):
+        """Appends a weight to a list of weights.
 
-async def connect(account: Account) -> int:
-    try:
-        await account.connect(
-            username=os.environ["WHISKER_EMAIL"], 
-            password=os.environ["WHISKER_PASSWORD"], 
+        Args:
+            cat_weights: The list of weights.
+            name: The name of the cat.
+            timestamp: The timestamp of the weight record.
+            weight: The weight in lbs.
+        """
+        cat_weights.append({
+            "cat": name,
+            "timestamp": timestamp,
+            "weight_lbs": weight
+        })
+
+    async def get_recent_weights(self, robot: Robot) -> list:
+        """Extracts the recent weights from a litter robot activity list."""
+        activity_list = await robot.get_activity_history(limit = 10000)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=1)
+        weights = []
+
+        for activity in activity_list:
+            if activity.timestamp < cutoff:
+                continue
+
+            action = activity.action
+            if isinstance(action, str) and self._is_weight_record(action):
+                match = re.search(r"([\d.]+)", action)
+                if match:
+                    weight_lbs = float(match.group(1))
+                    if weight_lbs > 11.5:
+                        self._append_weight(weights, "basmati", activity.timestamp, weight_lbs)
+                    else:
+                        self._append_weight(weights, "jasmine", activity.timestamp, weight_lbs)
+
+        return weights
+
+    async def connect(self, email: str, passphrase: str) -> list:
+        """Attempts a connection to the Whisker account.
+
+        Args:
+            email: The email of the account.
+            passphrase: The password of the account.
+
+        Returns:
+            The list of robots attached to the account.
+        """
+        await self._account.connect(
+            username=email, 
+            password=passphrase, 
             load_robots=True
         )
 
-        return len(account.robots)
-        robot = account.robots[0]
-        return get_recent_weights(await robot.get_activity_history(limit = 10000))
-    finally:
-        await account.disconnect()
-
-if __name__ == "__main__":
-    asyncio.run(connect())
+        return self._account.robots
+    
+    async def disconnect(self):
+        """Disconnects from the Whisker account."""
+        await self._account.disconnect()

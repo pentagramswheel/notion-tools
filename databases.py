@@ -1,7 +1,7 @@
 from datetime import datetime, timezone, timedelta
 
 from notion import Property
-from litterbot import Account
+from litterbot import Whisker
 
 class Database:
     """A class which interacts with Notion databases."""
@@ -174,15 +174,13 @@ class TasksDatabase(Database):
             self.logger.error("Key error found. Stopping reset.", e)
 
         self.logger.bind(num_tasks=updated) \
-            .info("db_updated")
+            .info("task_db_updated")
         
 class LitterBotDatabase(Database):
     """A class which interacts with the tasks database."""
 
-    def __init__(self, client, lr_db_id, email, password, logger):
+    def __init__(self, client, lr_db_id, logger):
         super().__init__(client, lr_db_id, logger)
-        self._whisker_email = email
-        self._whisker_password = password
 
     def _old_weights(self):
         """Retrieves the overdue tasks."""
@@ -208,22 +206,26 @@ class LitterBotDatabase(Database):
 
             start_cursor = response.get("next_cursor")
 
-    async def update_weights(self):
+    async def update_weights(self, email: str, password: str):
         """Updates the cats' recent weights."""
         updated = 0
         deleted = 0
-        account = Account()
+        account = Whisker()
 
         try:
-            await account.connect(
+            robots = await account.connect(
                 username=self._whisker_email, 
                 password=self._whisker_password, 
                 load_robots=True
             )
-
+            
             for record in self._old_weights():
                 self.delete_database_page(record["id"])
                 deleted += 1
+
+            for robot in robots:
+                recent_weights = await account.get_recent_weights(robot)
+                self.create_database_page(recent_weights)
         except TypeError as e:
             self.logger.error("Type error found. Stopping reset.", e)
         except KeyError as e:
@@ -235,5 +237,5 @@ class LitterBotDatabase(Database):
         self.logger.bind(
             new_weights=updated, 
             deleted_weights=deleted) \
-            .info("db_updated")
+            .info("weights_db_updated")
     

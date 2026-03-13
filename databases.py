@@ -1,6 +1,7 @@
 from datetime import datetime, timezone, timedelta
 
 from notion import Property
+from litterbot import Account
 
 class Database:
     """A class which interacts with Notion databases."""
@@ -43,8 +44,31 @@ class Database:
             raise TypeError(f"indices must be int, list, or None, got {type(indices)}")
 
         return [{"object": "group", "id": person["id"]} for person in selected]
+    
+    def get_property(self, properties: dict, key=None):
+        """Retrieve a property's value via its key if any."""
+        if properties and key:
+            return Property(properties.get(key)).get_value()
+        else:
+            raise KeyError("Property could not be found.")
+        
+    def create_database_page(self, new_properties: dict) -> dict:
+        """Creates a Notion page within a database.
 
-    def update_database(self, page_key: str, updated_properties: dict) -> dict:
+        Args:
+            new_properties: The page's properties.
+
+        Returns:
+            The SDK response.
+        """
+        response = self.notion_app.pages.create(
+            parent={"data_source_id": self.id},
+            properties=new_properties
+        )
+
+        return response
+
+    def update_database_page(self, page_key: str, updated_properties: dict) -> dict:
         """Updates a Notion page within a database.
 
         Args:
@@ -56,7 +80,25 @@ class Database:
         """
         response = self.notion_app.pages.update(
             page_id=page_key, 
-            properties=updated_properties)
+            properties=updated_properties
+        )
+        
+        return response
+    
+    def delete_database_page(self, page_key: str) -> dict:
+        """Deletes a Notion page within a database.
+
+        Args:
+            page_key: The primary key/title of the page.
+            updated_properties: The properties to update to.
+
+        Returns:
+            The SDK response.
+        """
+        response = self.notion_app.pages.update(
+            page_id=page_key, 
+            archived=True
+        )
         
         return response
 
@@ -90,13 +132,6 @@ class TasksDatabase(Database):
 
             start_cursor = response.get("next_cursor")
 
-    def _get_property(self, properties: dict, key=None):
-        """Retrieve a property's value via its key if any."""
-        if properties and key:
-            return Property(properties.get(key)).get_value()
-        else:
-            raise KeyError("Task properties could not be found.")
-
     def reset_overdue_tasks(self):
         """Resets the overdue tasks."""
         updated = 0
@@ -104,14 +139,14 @@ class TasksDatabase(Database):
         try:
             for task in self._overdue_tasks():
                 props = task.get("properties", {})
-                deadline = Property(props.get("deadline")).get_value()
+                deadline = self.get_property(props, "deadline")
                 if not deadline or not deadline.get("start"):
                     continue
 
-                task_name = str(Property(props.get("task")).get_value())
-                schedule = str(Property(props.get("schedule")).get_value())
-                week_rot = int(Property(props.get("week_rot")).get_value())
-                people = list(Property(props.get("people")).get_value())
+                task_name = str(self.get_property(props, "task"))
+                schedule = str(self.get_property(props, "schedule"))
+                week_rot = int(self.get_property(props, "week_rot"))
+                people = list(self.get_property(props, "people"))
 
                 curr_deadline = datetime.fromisoformat(str(deadline["start"]).replace("Z", "+00:00"))
                 new_deadline = curr_deadline + timedelta(weeks=week_rot)
@@ -128,7 +163,7 @@ class TasksDatabase(Database):
                         new_index = (people.index(current_assigned) + 1) % len(people)
                         updated_properties["assigned"] = {"people": self.to_notion_people(people, new_index)}
 
-                self.update_database(task["id"], updated_properties)
+                self.update_database_page(task["id"], updated_properties)
                 self.logger.bind(task=task_name) \
                     .info("task_updated")
                 
@@ -139,5 +174,66 @@ class TasksDatabase(Database):
             self.logger.error("Key error found. Stopping reset.", e)
 
         self.logger.bind(num_tasks=updated) \
+            .info("db_updated")
+        
+class LitterBotDatabase(Database):
+    """A class which interacts with the tasks database."""
+
+    def __init__(self, client, lr_db_id, email, password, logger):
+        super().__init__(client, lr_db_id, logger)
+        self._whisker_email = email
+        self._whisker_password = password
+
+    def _old_weights(self):
+        """Retrieves the overdue tasks."""
+        start_cursor = None
+        cutoff = datetime.now(timezone.utc) - timedelta(weeks=2)
+        cutoff_iso = cutoff.isoformat()
+
+        while True:
+            response = self.notion_app.data_sources.query(
+                data_source_id=self.id,
+                start_cursor=start_cursor,
+                filter={
+                    "property": "timestamp",
+                    "date": {"before": cutoff_iso}
+                }
+            )
+
+            for weight in response.get("results", []):
+                yield weight
+
+            if not response.get("has_more"):
+                break
+
+            start_cursor = response.get("next_cursor")
+
+    async def update_weights(self):
+        """Updates the cats' recent weights."""
+        updated = 0
+        deleted = 0
+        account = Account()
+
+        try:
+            await account.connect(
+                username=self._whisker_email, 
+                password=self._whisker_password, 
+                load_robots=True
+            )
+
+            for record in self._old_weights():
+                self.delete_database_page(record["id"])
+                deleted += 1
+        except TypeError as e:
+            self.logger.error("Type error found. Stopping reset.", e)
+        except KeyError as e:
+            self.logger.error("Key error found. Stopping reset.", e)
+        except Exception as e:
+            self.logger.error("Could not log into the Whisker account.", e)
+            account.disconnect()
+
+        self.logger.bind(
+            new_weights=updated, 
+            deleted_weights=deleted) \
             .info("db_updated")
     

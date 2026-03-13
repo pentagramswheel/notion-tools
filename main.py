@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import datetime
 
 from notion_client import Client
 from loguru import logger
@@ -16,11 +17,12 @@ def configure_logger():
 
 def main():
     client = Client(auth=os.environ["NOTION_TOKEN"])
-    tasks_id = os.environ["TASKS_DB_ID"]
     configure_logger()
 
-    tasks_db = TasksDatabase(client, tasks_id, logger)
-    tasks_db.reset_overdue_tasks()
+    if (not datetime.today().weekday()):
+        tasks_id = os.environ["TASKS_DB_ID"]
+        tasks_db = TasksDatabase(client, tasks_id, logger)
+        tasks_db.reset_overdue_tasks()
 
 if __name__ == "__main__":
     main()

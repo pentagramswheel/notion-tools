@@ -10,23 +10,23 @@ class Property:
     def __init__(self, prop: dict):
         self.property = prop;
 
-    def _checked(self, property: dict, value: str):
+    def __checked(self, property: dict, value: str):
         """Checks if the property exists before outputting it."""
         if not property:
             return None
         else:
             return property.get(value)
 
-    def _checkbox(self, property: dict) -> bool:
+    def __checkbox(self, property: dict) -> bool:
         """Retrieves the value of a checkbox property."""
         return bool(self._checked(property, "checkbox"))
 
-    def _created_by(self, property: dict) -> str:
+    def __created_by(self, property: dict) -> str:
         """Retrieves the value of a created_by property."""
         user = self._checked(property, "created_by")
         return self._checked(user, "id")
     
-    def _parseDateTime(self, datetime_str: str) -> datetime:
+    def __parseDateTime(self, datetime_str: str) -> datetime:
         if not datetime_str:
             return None
 
@@ -45,12 +45,12 @@ class Property:
         else:
             return None
 
-    def _created_time(self, property: dict) -> datetime:
+    def __created_time(self, property: dict) -> datetime:
         """Retrieves the value of a created_time property."""
         time = self._checked(property, "created_time")
         return self._parseDateTime(time)
 
-    def _date(self, property: dict) -> dict:
+    def __date(self, property: dict) -> dict:
         """Retrieves the value of a date property."""
         date = self._checked(property, "date")
         if not date:
@@ -62,11 +62,11 @@ class Property:
             "time_zone": date.get("time_zone"),
         }
 
-    def _email(self, property: dict) -> str:
+    def __email(self, property: dict) -> str:
         """Retrieves the value of an email property."""
         return str(self._checked(property, "email"))
 
-    def _files(self, property: dict) -> list:
+    def __files(self, property: dict) -> list:
         """Retrieves the value of a files property."""
         files = property.get("files") if property else []
         files = self._checked(property, "files")
@@ -82,7 +82,7 @@ class Property:
         
         return out
     
-    def _formula(self, property: dict):
+    def __formula(self, property: dict):
         """Retrieves the value of a formula property."""
         formula = self._checked(property, "formula")
         if not formula:
@@ -99,16 +99,16 @@ class Property:
         else:
             return None
 
-    def _last_edited_by(self, property: dict) -> str:
+    def __last_edited_by(self, property: dict) -> str:
         """Retrieves the value of a last_edited_by property."""
         user = self._checked(property, "last_edited_by")
         return str(self._checked(user, "id"))
 
-    def _last_edited_time(self, property: dict):
+    def __last_edited_time(self, property: dict):
         """Retrieves the value of a last_edited_time property."""
         return self._checked(property, "last_edited_time")
 
-    def _multi_select(self, property: dict):
+    def __multi_select(self, property: dict):
         """Retrieves the value of a multi_select property."""
         values = self._checked(property, "multi_select")
         if not values:
@@ -116,11 +116,11 @@ class Property:
 
         return values
 
-    def _number(self, property: dict):
+    def __number(self, property: dict):
         """Retrieves the value of a number property."""
         return self._checked(property, "number")
 
-    def _people(self, property: dict) -> list:
+    def __people(self, property: dict) -> list:
         """Retrieves the value of a people property."""
         people = self._checked(property, "people")
         if not people:
@@ -128,15 +128,15 @@ class Property:
 
         return [{"id": p.get("id")} for p in people]
 
-    def _phone_number(self, property: dict) -> str:
+    def __phone_number(self, property: dict) -> str:
         """Retrieves the value of a phone_number property."""
         return str(self._checked(property, "phone_number"))
 
-    def _place(self, property: dict):
+    def __place(self, property: dict):
         """Retrieves the value of a place property."""
         return self._checked(property, "place")
 
-    def _relation(self, property: dict):
+    def __relation(self, property: dict):
         """Retrieves the value of a relation property."""
         relations = self._checked(property, "relation")
         if not relations:
@@ -144,7 +144,7 @@ class Property:
 
         return relations
 
-    def _rich_text(self, property: dict):
+    def __rich_text(self, property: dict):
         """Retrieves the value of a rich_text property."""
         texts = property.get("rich_text") if property else []
         texts = self._checked(property, "rich_text")
@@ -162,7 +162,7 @@ class Property:
             
         return full_text.rstrip()
 
-    def _rollup(self, property: dict):
+    def __rollup(self, property: dict):
         """Retrieves the value of a rollup property."""
         rollup = self._checked(property, "rollup")
         if not rollup:
@@ -176,17 +176,17 @@ class Property:
         
         return None
 
-    def _select(self, property: dict):
+    def __select(self, property: dict):
         """Retrieves the value of a select property."""
         value = self._checked(property, "select")
         return self._checked(value, "name")
 
-    def _status(self, property: dict):
+    def __status(self, property: dict):
         """Retrieves the value of a status property."""
         value = self._checked(property, "status")
         return self._checked(value, "name")
 
-    def _title(self, property: dict):
+    def __title(self, property: dict):
         """Retrieves the value of a title property."""
         titles = self._checked(property, "title")
         if not titles:
@@ -194,13 +194,13 @@ class Property:
 
         return " ".join(t["plain_text"] for t in titles)
 
-    def _url(self, property: dict):
+    def __url(self, property: dict):
         """Retrieves the value of a URL property."""
         return self._checked(property, "url")
 
     def get_value(self):
         """Retrieves the value of a property dynamically by type."""
-        handler = getattr(self, f"_{self.property['type']}", None)
+        handler = getattr(self, f"__{self.property['type']}", None)
         if handler:
             return handler(self.property)
         return None

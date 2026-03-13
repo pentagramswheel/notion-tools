@@ -1,17 +1,15 @@
-import asyncio
-
-from pylitterbot import Account, Robot
-
 from datetime import datetime, timedelta, timezone
 import re
+
+from pylitterbot import Account, Robot
 
 class Whisker:
     """A class which interacts with Whisker Litter Robots."""
 
     def __init__(self):
-        self._account = Account()
+        self.__account = Account()
 
-    def _is_weight_record(self, action: str) -> bool:
+    def __is_weight_record(self, action: str) -> bool:
         """Checks if an activity was a weight record.
 
         Args:
@@ -23,8 +21,8 @@ class Whisker:
         """
         return action[0:19] == "Pet Weight Recorded"
 
-    def _append_weight(self, cat_weights: list, name: str, 
-                      timestamp: datetime, weight: float):
+    def __append_weight(self, cat_weights: list, name: str, 
+                        timestamp: datetime, weight: float):
         """Appends a weight to a list of weights.
 
         Args:
@@ -50,14 +48,14 @@ class Whisker:
                 continue
 
             action = activity.action
-            if isinstance(action, str) and self._is_weight_record(action):
+            if isinstance(action, str) and self.__is_weight_record(action):
                 match = re.search(r"([\d.]+)", action)
                 if match:
                     weight_lbs = float(match.group(1))
                     if weight_lbs > 11.5:
-                        self._append_weight(weights, "basmati", activity.timestamp, weight_lbs)
+                        self.__append_weight(weights, "basmati", activity.timestamp, weight_lbs)
                     else:
-                        self._append_weight(weights, "jasmine", activity.timestamp, weight_lbs)
+                        self.__append_weight(weights, "jasmine", activity.timestamp, weight_lbs)
 
         return weights
 
@@ -71,14 +69,14 @@ class Whisker:
         Returns:
             The list of robots attached to the account.
         """
-        await self._account.connect(
+        await self.__account.connect(
             username=email, 
             password=passphrase, 
             load_robots=True
         )
 
-        return self._account.robots
+        return self.__account.robots
     
     async def disconnect(self):
         """Disconnects from the Whisker account."""
-        await self._account.disconnect()
+        await self.__account.disconnect()

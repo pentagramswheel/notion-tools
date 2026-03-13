@@ -6,11 +6,11 @@ from litterbot import Whisker
 class Database:
     """A class which interacts with Notion databases."""
     def __init__(self, client, db_id, logger):
-        self.notion_app = client
-        self.id = db_id
-        self.logger = logger
+        self.__notion_app = client
+        self._id = db_id
+        self._logger = logger
 
-    def to_date(self, dt: datetime) -> str:
+    def _to_date(self, dt: datetime) -> str:
         """Converts a datetime to a date.
 
         Args:
@@ -21,7 +21,7 @@ class Database:
         """
         return dt.date().isoformat()
     
-    def to_notion_people(self, people_ids: list, indices=None) -> list:
+    def _to_notion_people(self, people_ids: list, indices=None) -> list:
         """Returns a list of SDK-compliant people objects to update to.
 
         Args:
@@ -45,14 +45,22 @@ class Database:
 
         return [{"object": "group", "id": person["id"]} for person in selected]
     
-    def get_property(self, properties: dict, key=None):
+    def _get_property(self, properties: dict, key=None):
         """Retrieve a property's value via its key if any."""
         if properties and key:
             return Property(properties.get(key)).get_value()
         else:
             raise KeyError("Property could not be found.")
+    
+    def __all_pages(self):
+        """Retrieve all Notion pages."""
+        return self.__notion_app.pages
+    
+    def _data_sources(self):
+        """Retrieve all Notion data sources."""
+        return self.__notion_app.data_sources
         
-    def create_database_page(self, new_properties: dict) -> dict:
+    def _create_database_page(self, new_properties: dict) -> dict:
         """Creates a Notion page within a database.
 
         Args:
@@ -61,14 +69,14 @@ class Database:
         Returns:
             The SDK response.
         """
-        response = self.notion_app.pages.create(
-            parent={"data_source_id": self.id},
+        response = self.__all_pages().create(
+            parent={"data_source_id": self._id},
             properties=new_properties
         )
 
         return response
 
-    def update_database_page(self, page_key: str, updated_properties: dict) -> dict:
+    def _update_database_page(self, page_key: str, updated_properties: dict) -> dict:
         """Updates a Notion page within a database.
 
         Args:
@@ -78,14 +86,14 @@ class Database:
         Returns:
             The SDK response.
         """
-        response = self.notion_app.pages.update(
+        response = self.__all_pages().update(
             page_id=page_key, 
             properties=updated_properties
         )
         
         return response
     
-    def delete_database_page(self, page_key: str) -> dict:
+    def _delete_database_page(self, page_key: str) -> dict:
         """Deletes a Notion page within a database.
 
         Args:
@@ -95,7 +103,7 @@ class Database:
         Returns:
             The SDK response.
         """
-        response = self.notion_app.pages.update(
+        response = self.__all_pages().update(
             page_id=page_key, 
             archived=True
         )
@@ -108,15 +116,15 @@ class TasksDatabase(Database):
     def __init__(self, client, tasks_db_id, logger):
         super().__init__(client, tasks_db_id, logger)
 
-    def _overdue_tasks(self):
+    def __overdue_tasks(self):
         """Retrieves the overdue tasks."""
         start_cursor = None
         cutoff = datetime.now(timezone.utc) + timedelta(hours=1)
         cutoff_iso = cutoff.isoformat()
 
         while True:
-            response = self.notion_app.data_sources.query(
-                data_source_id=self.id,
+            response = self.__data_sources().query(
+                data_source_id=self._id,
                 start_cursor=start_cursor,
                 filter={
                     "property": "deadline",
@@ -137,23 +145,23 @@ class TasksDatabase(Database):
         updated = 0
 
         try:
-            for task in self._overdue_tasks():
+            for task in self.__overdue_tasks():
                 props = task.get("properties", {})
-                deadline = self.get_property(props, "deadline")
+                deadline = self._get_property(props, "deadline")
                 if not deadline or not deadline.get("start"):
                     continue
 
-                task_name = str(self.get_property(props, "task"))
-                schedule = str(self.get_property(props, "schedule"))
-                week_rot = int(self.get_property(props, "week_rot"))
-                people = list(self.get_property(props, "people"))
+                task_name = str(self._get_property(props, "task"))
+                schedule = str(self._get_property(props, "schedule"))
+                week_rot = int(self._get_property(props, "week_rot"))
+                people = list(self._get_property(props, "people"))
 
                 curr_deadline = datetime.fromisoformat(str(deadline["start"]).replace("Z", "+00:00"))
                 new_deadline = curr_deadline + timedelta(weeks=week_rot)
 
                 updated_properties = {
                     "status": {"status": {"name": "NS"}},
-                    "deadline": {"date": {"start": self.to_date(new_deadline)}}
+                    "deadline": {"date": {"start": self._to_date(new_deadline)}}
                 }
 
                 if "alt" in schedule.lower() and len(people) > 0:
@@ -161,9 +169,9 @@ class TasksDatabase(Database):
                     if assigned:
                         current_assigned = assigned[0]
                         new_index = (people.index(current_assigned) + 1) % len(people)
-                        updated_properties["assigned"] = {"people": self.to_notion_people(people, new_index)}
+                        updated_properties["assigned"] = {"people": self._to_notion_people(people, new_index)}
 
-                self.update_database_page(task["id"], updated_properties)
+                self._update_database_page(task["id"], updated_properties)
                 self.logger.bind(task=task_name) \
                     .info("task_updated")
                 
@@ -182,14 +190,14 @@ class LitterBotDatabase(Database):
     def __init__(self, client, lr_db_id, logger):
         super().__init__(client, lr_db_id, logger)
 
-    def _old_weights(self):
+    def __old_weights(self):
         """Retrieves the overdue tasks."""
         start_cursor = None
         cutoff = datetime.now(timezone.utc) - timedelta(weeks=2)
         cutoff_iso = cutoff.isoformat()
 
         while True:
-            response = self.notion_app.data_sources.query(
+            response = self.__data_sources().query(
                 data_source_id=self.id,
                 start_cursor=start_cursor,
                 filter={
@@ -206,26 +214,22 @@ class LitterBotDatabase(Database):
 
             start_cursor = response.get("next_cursor")
 
-    async def update_weights(self, email: str, password: str):
+    async def update_weights(self, email: str, passphrase: str):
         """Updates the cats' recent weights."""
         updated = 0
         deleted = 0
         account = Whisker()
 
         try:
-            robots = await account.connect(
-                username=self._whisker_email, 
-                password=self._whisker_password, 
-                load_robots=True
-            )
+            robots = await account.connect(email, passphrase)
             
-            for record in self._old_weights():
-                self.delete_database_page(record["id"])
+            for record in self.__old_weights():
+                self._delete_database_page(record["id"])
                 deleted += 1
 
             for robot in robots:
                 recent_weights = await account.get_recent_weights(robot)
-                self.create_database_page(recent_weights)
+                self._create_database_page(recent_weights)
         except TypeError as e:
             self.logger.error("Type error found. Stopping reset.", e)
         except KeyError as e:

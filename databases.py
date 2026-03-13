@@ -229,7 +229,9 @@ class LitterBotDatabase(Database):
 
             for robot in robots:
                 recent_weights = await account.get_recent_weights(robot)
-                self._create_database_page(recent_weights)
+                
+                for weight in recent_weights:
+                    self._create_database_page(weight)
         except TypeError as e:
             self.logger.error("Type error found. Stopping reset.", e)
         except KeyError as e:

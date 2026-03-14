@@ -3,7 +3,7 @@ import sys
 from datetime import datetime
 
 import asyncio
-from notion_client import Client, AsyncClient
+from notion_client import AsyncClient
 from loguru import logger
 
 from databases import TasksDatabase, LitterBotDatabase

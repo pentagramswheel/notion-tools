@@ -12,6 +12,9 @@ jobs:
     env:
       NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
       TASKS_DB_ID: ${{ secrets.TASKS_DB_ID }}
+      WEIGHTS_DB_ID: ${{ secrets.WEIGHTS_DB_ID }}
+      WHISKER_EMAIL: ${{ secrets.WHISKER_EMAIL }}
+      WHISKER_PASSWORD: ${{ secrets.WHISKER_PASSWORD }}
 
     steps:
       - name: Checkout repository

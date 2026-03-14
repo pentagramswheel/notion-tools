@@ -1,75 +1,71 @@
 import os
+from typing import Any
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
 class Property:
-    """A class which helps process Notion database properties."""
+    """A class which processes Notion database properties."""
 
-    _LOCAL_TZ = ZoneInfo(os.getenv("TZ", "America/Chicago"))
-
+    # field for local timezone
+    __LOCAL_TZ: ZoneInfo = ZoneInfo(os.getenv("TZ", "America/Chicago"))
+    
     def __init__(self, prop: dict):
-        self.property = prop;
-
-    def __checked(self, property: dict, value: str):
+        self.__property = prop;
+    
+    def __checked(self, value: str, property: dict = None):
         """Checks if the property exists before outputting it."""
         if not property:
-            return None
+            return self.__property.get(value)
         else:
             return property.get(value)
 
-    def __checkbox(self, property: dict) -> bool:
+    def _checkbox(self) -> bool:
         """Retrieves the value of a checkbox property."""
-        return bool(self._checked(property, "checkbox"))
+        return bool(self.__checked("checkbox"))
 
-    def __created_by(self, property: dict) -> str:
+    def _created_by(self) -> str:
         """Retrieves the value of a created_by property."""
-        user = self._checked(property, "created_by")
-        return self._checked(user, "id")
+        user = self.__checked("created_by")
+        return self.__checked("id", user)
     
     def __parseDateTime(self, datetime_str: str) -> datetime:
+        """Parses datetime strings to local timezone datetimes."""
         if not datetime_str:
             return None
 
-        if isinstance(datetime_str, datetime):
-            if datetime_str.tzinfo:
-                return datetime_str.astimezone(self._LOCAL_TZ)
-            else:
-                datetime_str.replace(tzinfo=self._LOCAL_TZ)
-
         if isinstance(datetime_str, str) and len(datetime_str) == 10:
             dt = datetime.strptime(datetime_str, "%Y-%m-%d")
-            return dt.replace(tzinfo=self._LOCAL_TZ)
+            return dt.replace(tzinfo=self.__LOCAL_TZ)
         elif isinstance(datetime_str, str):
             dt = datetime.fromisoformat(datetime_str.replace("Z", "+00:00"))
-            return dt.astimezone(self._LOCAL_TZ)
+            return dt.astimezone(self.__LOCAL_TZ)
         else:
             return None
 
-    def __created_time(self, property: dict) -> datetime:
+    def _created_time(self) -> datetime:
         """Retrieves the value of a created_time property."""
-        time = self._checked(property, "created_time")
+        time = self.__checked("created_time")
         return self._parseDateTime(time)
 
-    def __date(self, property: dict) -> dict:
+    def _date(self) -> dict:
         """Retrieves the value of a date property."""
-        date = self._checked(property, "date")
+        date = self.__checked("date")
         if not date:
             return None
         
         return {
-            "start": self._parseDateTime(date.get("start")),
-            "end": self._parseDateTime(date.get("end")),
+            "start": self.__parseDateTime(date.get("start")),
+            "end": self.__parseDateTime(date.get("end")),
             "time_zone": date.get("time_zone"),
         }
 
-    def __email(self, property: dict) -> str:
+    def _email(self) -> str:
         """Retrieves the value of an email property."""
-        return str(self._checked(property, "email"))
+        return self.__checked("email")
 
-    def __files(self, property: dict) -> list:
+    def _files(self) -> list:
         """Retrieves the value of a files property."""
-        files = property.get("files") if property else []
-        files = self._checked(property, "files")
+        files = self.__checked("files")
         if not files:
             files = []
 
@@ -82,9 +78,9 @@ class Property:
         
         return out
     
-    def __formula(self, property: dict):
+    def _formula(self) -> Any:
         """Retrieves the value of a formula property."""
-        formula = self._checked(property, "formula")
+        formula = self.__checked("formula")
         if not formula:
             return None
 
@@ -99,55 +95,54 @@ class Property:
         else:
             return None
 
-    def __last_edited_by(self, property: dict) -> str:
+    def _last_edited_by(self) -> str:
         """Retrieves the value of a last_edited_by property."""
-        user = self._checked(property, "last_edited_by")
-        return str(self._checked(user, "id"))
+        user = self.__checked("last_edited_by")
+        return self.__checked("id", user)
 
-    def __last_edited_time(self, property: dict):
+    def _last_edited_time(self):
         """Retrieves the value of a last_edited_time property."""
-        return self._checked(property, "last_edited_time")
+        return self.__checked("last_edited_time")
 
-    def __multi_select(self, property: dict):
+    def _multi_select(self) -> list:
         """Retrieves the value of a multi_select property."""
-        values = self._checked(property, "multi_select")
+        values = self.__checked("multi_select")
         if not values:
             values = []
 
         return values
 
-    def __number(self, property: dict):
+    def _number(self) -> int:
         """Retrieves the value of a number property."""
-        return self._checked(property, "number")
+        return self.__checked("number")
 
-    def __people(self, property: dict) -> list:
+    def _people(self) -> list:
         """Retrieves the value of a people property."""
-        people = self._checked(property, "people")
+        people = self.__checked("people")
         if not people:
             people = []
 
         return [{"id": p.get("id")} for p in people]
 
-    def __phone_number(self, property: dict) -> str:
+    def _phone_number(self) -> str:
         """Retrieves the value of a phone_number property."""
-        return str(self._checked(property, "phone_number"))
+        return self.__checked("phone_number")
 
-    def __place(self, property: dict):
+    def _place(self):
         """Retrieves the value of a place property."""
-        return self._checked(property, "place")
+        return self.__checked("place")
 
-    def __relation(self, property: dict):
+    def _relation(self) -> list:
         """Retrieves the value of a relation property."""
-        relations = self._checked(property, "relation")
+        relations = self.__checked("relation")
         if not relations:
             relations = []
 
         return relations
 
-    def __rich_text(self, property: dict):
+    def _rich_text(self) -> str:
         """Retrieves the value of a rich_text property."""
-        texts = property.get("rich_text") if property else []
-        texts = self._checked(property, "rich_text")
+        texts = self.__checked("rich_text")
         if not texts:
             texts = []
 
@@ -162,9 +157,10 @@ class Property:
             
         return full_text.rstrip()
 
-    def __rollup(self, property: dict):
+    def _rollup(self) -> Any:
         """Retrieves the value of a rollup property."""
-        rollup = self._checked(property, "rollup")
+        rollup = self.__checked("rollup")
+
         if not rollup:
             return None
         if rollup["type"] == "number":
@@ -176,31 +172,30 @@ class Property:
         
         return None
 
-    def __select(self, property: dict):
+    def _select(self) -> str:
         """Retrieves the value of a select property."""
-        value = self._checked(property, "select")
-        return self._checked(value, "name")
+        value = self.__checked("select")
+        return self.__checked("name", value)
 
-    def __status(self, property: dict):
+    def _status(self) -> str:
         """Retrieves the value of a status property."""
-        value = self._checked(property, "status")
-        return self._checked(value, "name")
+        value = self.__checked("status")
+        return self.__checked("name", value)
 
-    def __title(self, property: dict):
+    def _title(self) -> str:
         """Retrieves the value of a title property."""
-        titles = self._checked(property, "title")
+        titles = self.__checked("title")
         if not titles:
             titles = []
 
         return " ".join(t["plain_text"] for t in titles)
 
-    def __url(self, property: dict):
+    def _url(self):
         """Retrieves the value of a URL property."""
-        return self._checked(property, "url")
+        return self.__checked("url")
 
-    def get_value(self):
+    @property
+    def value(self):
         """Retrieves the value of a property dynamically by type."""
-        handler = getattr(self, f"__{self.property['type']}", None)
-        if handler:
-            return handler(self.property)
-        return None
+        handler = getattr(self, f"_{self.__property['type']}")
+        return handler()

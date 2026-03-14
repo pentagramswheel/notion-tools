@@ -49,7 +49,7 @@ class Database:
     def _get_property(self, properties: dict, key=None):
         """Retrieve a property's value via its key if any."""
         if properties and key:
-            return Property(properties.get(key)).get_value()
+            return Property(properties.get(key)).value
         else:
             raise KeyError("Property could not be found.")
     
@@ -114,8 +114,7 @@ class Tasks(Database):
     async def __overdue_tasks(self):
         """Retrieves the overdue tasks."""
         cursor = None
-        cutoff = datetime.now(timezone.utc) + timedelta(hours=1)
-        cutoff_iso = cutoff.isoformat()
+        cutoff = datetime.now(timezone.utc).isoformat()
 
         while True:
             response = await self._data_sources().query(
@@ -123,7 +122,7 @@ class Tasks(Database):
                 start_cursor=cursor,
                 filter={
                     "property": "deadline",
-                    "date": {"before": cutoff_iso}
+                    "date": {"before": cutoff}
                 }
             )
 
@@ -142,14 +141,14 @@ class Tasks(Database):
         try:
             async for task in self.__overdue_tasks():
                 props = task.get("properties", {})
-                deadline = self._get_property(props, "deadline")
+                deadline: dict = self._get_property(props, "deadline")
                 if not deadline or not deadline.get("start"):
                     continue
 
-                task_name = str(self._get_property(props, "task"))
-                schedule = str(self._get_property(props, "schedule"))
-                week_rot = int(self._get_property(props, "week_rot"))
-                people = list(self._get_property(props, "people"))
+                task_name: str = self._get_property(props, "task")
+                schedule: str = self._get_property(props, "schedule")
+                week_rot: int = self._get_property(props, "week_rot")
+                people: list = self._get_property(props, "people")
 
                 curr_deadline = datetime.fromisoformat(str(deadline["start"]).replace("Z", "+00:00"))
                 new_deadline = curr_deadline + timedelta(weeks=week_rot)
@@ -189,7 +188,7 @@ class LitterBot(Database):
         """Retrieves the overdue tasks."""
         cursor = None
         cutoff = datetime.now(timezone.utc) - timedelta(weeks=2)
-        cutoff_iso = cutoff.isoformat()
+        cutoff = cutoff.isoformat()
 
         while True:
             response = await self._data_sources().query(
@@ -197,7 +196,7 @@ class LitterBot(Database):
                 start_cursor=cursor,
                 filter={
                     "property": "timestamp",
-                    "date": {"before": cutoff_iso}
+                    "date": {"before": cutoff}
                 }
             )
 

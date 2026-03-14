@@ -105,8 +105,8 @@ class Database:
             archived=True
         )
 
-class TasksDatabase(Database):
-    """A class which interacts with the tasks database."""
+class Tasks(Database):
+    """A class which interacts with the Tasks database."""
 
     def __init__(self, client, tasks_db_id, logger):
         super().__init__(client, tasks_db_id, logger)
@@ -179,8 +179,8 @@ class TasksDatabase(Database):
         self._logger.bind(num_tasks=updated) \
             .info("task_db_updated")
         
-class LitterBotDatabase(Database):
-    """A class which interacts with the tasks database."""
+class LitterBot(Database):
+    """A class which interacts with the Litter Robot database."""
 
     def __init__(self, client, lr_db_id, logger):
         super().__init__(client, lr_db_id, logger)

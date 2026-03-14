@@ -1,4 +1,4 @@
-name: Weekly Task Reset
+name: Weekly Notion Refresh
 
 on:
   schedule:
@@ -15,6 +15,7 @@ jobs:
       WEIGHTS_DB_ID: ${{ secrets.WEIGHTS_DB_ID }}
       WHISKER_EMAIL: ${{ secrets.WHISKER_EMAIL }}
       WHISKER_PASSWORD: ${{ secrets.WHISKER_PASSWORD }}
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # remove after jun 2026
 
     steps:
       - name: Checkout repository
@@ -26,7 +27,7 @@ jobs:
           python-version: "3.13"
 
       - name: Install uv
-        run: python -m pip install --upgrade pip uv
+        run: pip install uv
 
       - name: Install dependencies
         run: |

@@ -6,7 +6,7 @@ on:
   workflow_dispatch: # allow manual run
 
 jobs:
-  run-task-reset:
+  run-notion-refresh:
     runs-on: ubuntu-latest
 
     env:

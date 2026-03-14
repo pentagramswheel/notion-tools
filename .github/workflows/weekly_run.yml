@@ -2,7 +2,8 @@ name: Weekly Task Reset
 
 on:
   schedule:
-    - cron: '0 12 * * *' # monday @ 4am CST, 5am CDT, 12pm UTC
+    # - cron: '0 12 * * *' # every day @ 4am CST, 5am CDT, 12pm UTC
+    - cron: '0 * * * *'
   workflow_dispatch: # allow manual run
 
 jobs:

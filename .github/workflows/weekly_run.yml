@@ -2,8 +2,7 @@ name: Weekly Task Reset
 
 on:
   schedule:
-    # - cron: '0 12 * * *' # every day @ 4am CST, 5am CDT, 12pm UTC
-    - cron: '0 * * * *'
+    - cron: '0 12 * * *' # every day @ 4am CST, 5am CDT, 12pm UTC
   workflow_dispatch: # allow manual run
 
 jobs:
@@ -16,10 +15,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.13"
 

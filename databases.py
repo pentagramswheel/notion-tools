@@ -210,7 +210,12 @@ class LitterBotDatabase(Database):
             cursor = response.get("next_cursor")
 
     async def update_weights(self, email: str, passphrase: str):
-        """Updates the cats' recent weights."""
+        """Updates the cats' recent weights.
+
+        Args:
+            email: The email of the Whisker account.
+            passphrase: The password of the Whisker account.
+        """
         updated = 0
         deleted = 0
         account = Whisker()

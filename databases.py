@@ -100,7 +100,7 @@ class Database:
         Returns:
             The SDK response.
         """
-        return self.__all_pages().update(
+        return await self.__all_pages().update(
             page_id=page_key, 
             archived=True
         )
@@ -219,7 +219,7 @@ class LitterBotDatabase(Database):
             robots = await account.connect(email, passphrase)
             
             async for record in self.__old_weights():
-                self._delete_database_page(record["id"])
+                await self._delete_database_page(record["id"])
                 deleted += 1
 
             for robot in robots:

@@ -67,9 +67,9 @@ class Whisker:
                 if match:
                     weight_lbs = float(match.group(1))
                     if weight_lbs > 11.5:
-                        self.__append_notion_weight(weights, "basmati", activity.timestamp, weight_lbs)
+                        self.__append_notion_weight(weights, "Basmati", activity.timestamp, weight_lbs)
                     else:
-                        self.__append_notion_weight(weights, "jasmine", activity.timestamp, weight_lbs)
+                        self.__append_notion_weight(weights, "Jasmine", activity.timestamp, weight_lbs)
 
         return weights
 

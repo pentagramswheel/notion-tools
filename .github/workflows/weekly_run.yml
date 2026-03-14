@@ -2,7 +2,7 @@ name: Weekly Task Reset
 
 on:
   schedule:
-    - cron: '0 12 * * 1' # monday @ 4am CST, 5am CDT, 12pm UTC
+    - cron: '0 12 * * *' # monday @ 4am CST, 5am CDT, 12pm UTC
   workflow_dispatch: # allow manual run
 
 jobs:
@@ -29,5 +29,5 @@ jobs:
         run: |
           uv sync
 
-      - name: Run Task Reset
+      - name: Run Notion Refresh
         run: uv run main.py

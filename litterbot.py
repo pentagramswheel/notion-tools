@@ -21,9 +21,9 @@ class Whisker:
         """
         return action[0:19] == "Pet Weight Recorded"
 
-    def __append_weight(self, cat_weights: list, name: str, 
-                        timestamp: datetime, weight: float):
-        """Appends a weight to a list of weights.
+    def __append_notion_weight(self, cat_weights: list, name: str, 
+                        timestamp: datetime, weight_lbs: float):
+        """Appends a weight to a list of weights in a Notion format.
 
         Args:
             cat_weights: The list of weights.
@@ -32,9 +32,23 @@ class Whisker:
             weight: The weight in lbs.
         """
         cat_weights.append({
-            "cat": name,
-            "timestamp": timestamp,
-            "weight_lbs": weight
+            "cat": {
+                "title": [
+                    {
+                        "text": {
+                            "content": name
+                        }
+                    }
+                ]
+            },
+            "timestamp": {
+                "date": {
+                    "start": timestamp.isoformat()
+                }
+            },
+            "weight": {
+                "number": weight_lbs
+            }
         })
 
     async def get_recent_weights(self, robot: Robot) -> list:
@@ -53,9 +67,9 @@ class Whisker:
                 if match:
                     weight_lbs = float(match.group(1))
                     if weight_lbs > 11.5:
-                        self.__append_weight(weights, "basmati", activity.timestamp, weight_lbs)
+                        self.__append_notion_weight(weights, "basmati", activity.timestamp, weight_lbs)
                     else:
-                        self.__append_weight(weights, "jasmine", activity.timestamp, weight_lbs)
+                        self.__append_notion_weight(weights, "jasmine", activity.timestamp, weight_lbs)
 
         return weights
 

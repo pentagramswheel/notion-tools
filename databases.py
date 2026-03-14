@@ -1,11 +1,12 @@
 from datetime import datetime, timezone, timedelta
 
 from notion import Property
+from notion_client import AsyncClient
 from litterbot import Whisker
 
 class Database:
     """A class which interacts with Notion databases."""
-    def __init__(self, client, db_id, logger):
+    def __init__(self, client: AsyncClient, db_id: str, logger):
         self.__notion_app = client
         self._id = db_id
         self._logger = logger
@@ -60,7 +61,7 @@ class Database:
         """Retrieve all Notion data sources."""
         return self.__notion_app.data_sources
         
-    def _create_database_page(self, new_properties: dict) -> dict:
+    async def _create_database_page(self, new_properties: dict) -> dict:
         """Creates a Notion page within a database.
 
         Args:
@@ -69,14 +70,12 @@ class Database:
         Returns:
             The SDK response.
         """
-        response = self.__all_pages().create(
+        return await self.__all_pages().create(
             parent={"data_source_id": self._id},
             properties=new_properties
         )
 
-        return response
-
-    def _update_database_page(self, page_key: str, updated_properties: dict) -> dict:
+    async def _update_database_page(self, page_key: str, updated_properties: dict) -> dict:
         """Updates a Notion page within a database.
 
         Args:
@@ -86,14 +85,12 @@ class Database:
         Returns:
             The SDK response.
         """
-        response = self.__all_pages().update(
+        return await self.__all_pages().update(
             page_id=page_key, 
             properties=updated_properties
         )
-        
-        return response
     
-    def _delete_database_page(self, page_key: str) -> dict:
+    async def _delete_database_page(self, page_key: str) -> dict:
         """Deletes a Notion page within a database.
 
         Args:
@@ -103,12 +100,10 @@ class Database:
         Returns:
             The SDK response.
         """
-        response = self.__all_pages().update(
+        return self.__all_pages().update(
             page_id=page_key, 
             archived=True
         )
-        
-        return response
 
 class TasksDatabase(Database):
     """A class which interacts with the tasks database."""
@@ -116,16 +111,16 @@ class TasksDatabase(Database):
     def __init__(self, client, tasks_db_id, logger):
         super().__init__(client, tasks_db_id, logger)
 
-    def __overdue_tasks(self):
+    async def __overdue_tasks(self):
         """Retrieves the overdue tasks."""
-        start_cursor = None
+        cursor = None
         cutoff = datetime.now(timezone.utc) + timedelta(hours=1)
         cutoff_iso = cutoff.isoformat()
 
         while True:
-            response = self.__data_sources().query(
+            response = await self._data_sources().query(
                 data_source_id=self._id,
-                start_cursor=start_cursor,
+                start_cursor=cursor,
                 filter={
                     "property": "deadline",
                     "date": {"before": cutoff_iso}
@@ -138,14 +133,14 @@ class TasksDatabase(Database):
             if not response.get("has_more"):
                 break
 
-            start_cursor = response.get("next_cursor")
+            cursor = response.get("next_cursor")
 
-    def reset_overdue_tasks(self):
+    async def reset_overdue_tasks(self):
         """Resets the overdue tasks."""
         updated = 0
 
         try:
-            for task in self.__overdue_tasks():
+            async for task in self.__overdue_tasks():
                 props = task.get("properties", {})
                 deadline = self._get_property(props, "deadline")
                 if not deadline or not deadline.get("start"):
@@ -171,17 +166,17 @@ class TasksDatabase(Database):
                         new_index = (people.index(current_assigned) + 1) % len(people)
                         updated_properties["assigned"] = {"people": self._to_notion_people(people, new_index)}
 
-                self._update_database_page(task["id"], updated_properties)
-                self.logger.bind(task=task_name) \
+                await self._update_database_page(task["id"], updated_properties)
+                self._logger.bind(task=task_name) \
                     .info("task_updated")
                 
                 updated += 1
         except TypeError as e:
-            self.logger.error("Type error found. Stopping reset.", e)
+            self._logger.error("Type error found. Stopping reset.", e)
         except KeyError as e:
-            self.logger.error("Key error found. Stopping reset.", e)
+            self._logger.error("Key error found. Stopping reset.", e)
 
-        self.logger.bind(num_tasks=updated) \
+        self._logger.bind(num_tasks=updated) \
             .info("task_db_updated")
         
 class LitterBotDatabase(Database):
@@ -190,16 +185,16 @@ class LitterBotDatabase(Database):
     def __init__(self, client, lr_db_id, logger):
         super().__init__(client, lr_db_id, logger)
 
-    def __old_weights(self):
+    async def __old_weights(self):
         """Retrieves the overdue tasks."""
-        start_cursor = None
+        cursor = None
         cutoff = datetime.now(timezone.utc) - timedelta(weeks=2)
         cutoff_iso = cutoff.isoformat()
 
         while True:
-            response = self.__data_sources().query(
-                data_source_id=self.id,
-                start_cursor=start_cursor,
+            response = await self._data_sources().query(
+                data_source_id=self._id,
+                start_cursor=cursor,
                 filter={
                     "property": "timestamp",
                     "date": {"before": cutoff_iso}
@@ -212,7 +207,7 @@ class LitterBotDatabase(Database):
             if not response.get("has_more"):
                 break
 
-            start_cursor = response.get("next_cursor")
+            cursor = response.get("next_cursor")
 
     async def update_weights(self, email: str, passphrase: str):
         """Updates the cats' recent weights."""
@@ -223,7 +218,7 @@ class LitterBotDatabase(Database):
         try:
             robots = await account.connect(email, passphrase)
             
-            for record in self.__old_weights():
+            async for record in self.__old_weights():
                 self._delete_database_page(record["id"])
                 deleted += 1
 
@@ -231,16 +226,17 @@ class LitterBotDatabase(Database):
                 recent_weights = await account.get_recent_weights(robot)
                 
                 for weight in recent_weights:
-                    self._create_database_page(weight)
+                    await self._create_database_page(weight)
+                    updated += 1
         except TypeError as e:
-            self.logger.error("Type error found. Stopping reset.", e)
+            self._logger.error("Type error found. Stopping reset.", e)
         except KeyError as e:
-            self.logger.error("Key error found. Stopping reset.", e)
+            self._logger.error("Key error found. Stopping reset.", e)
         except Exception as e:
-            self.logger.error("Could not log into the Whisker account.", e)
-            account.disconnect()
+            self._logger.error("Could not log into the Whisker account.", e)
 
-        self.logger.bind(
+        await account.disconnect()
+        self._logger.bind(
             new_weights=updated, 
             deleted_weights=deleted) \
             .info("weights_db_updated")

@@ -197,5 +197,5 @@ class Property:
     @property
     def value(self):
         """Retrieves the value of a property dynamically by type."""
-        handler = getattr(self, f"_{self.__property['type']}")
+        handler = getattr(self, f"_{self.__property["type"]}")
         return handler()

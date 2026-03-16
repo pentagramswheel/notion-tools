@@ -159,7 +159,7 @@ class Tasks(Database):
                 }
 
                 if "alt" in schedule.lower() and len(people) > 0:
-                    assigned = list(Property(props.get("assigned")).get_value())
+                    assigned: list = self._get_property(props, "assigned")
                     if assigned:
                         current_assigned = assigned[0]
                         new_index = (people.index(current_assigned) + 1) % len(people)

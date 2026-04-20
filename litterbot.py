@@ -22,7 +22,7 @@ class Whisker:
         return action[0:19] == "Pet Weight Recorded"
 
     def __append_notion_weight(self, cat_weights: list, name: str, 
-                        timestamp: datetime, weight_lbs: float):
+                               timestamp: datetime, weight_lbs: float):
         """Appends a weight to a list of weights in a Notion format.
 
         Args:
@@ -66,10 +66,10 @@ class Whisker:
                 match = re.search(r"([\d.]+)", action)
                 if match:
                     weight_lbs = float(match.group(1))
-                    if weight_lbs > 11.5:
+                    if weight_lbs > 11 and weight_lbs <= 13.5:
                         self.__append_notion_weight(
                             weights, "Basmati", activity.timestamp, weight_lbs)
-                    else:
+                    elif weight_lbs > 8.5 and weight_lbs <= 11:
                         self.__append_notion_weight(
                             weights, "Jasmine", activity.timestamp, weight_lbs)
 

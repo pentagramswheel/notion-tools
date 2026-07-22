@@ -25,11 +25,14 @@ async def main():
         await tasks_db.reset_overdue_tasks()
 
     lr_db = LitterBot(client, os.getenv("WEIGHTS_DB_ID"), logger)
+    cat_names = os.getenv("CAT_NAMES").split(",")
+    cat_target_weights = os.getenv("CAT_TARGET_WEIGHTS")
+    
     await lr_db.update_weights(
         os.getenv("WHISKER_EMAIL"), 
         os.getenv("WHISKER_PASSWORD"),
-        os.getenv("CAT_NAMES"),
-        os.getenv("CAT_TARGET_WEIGHTS"))
+        [name.strip() for name in cat_names],
+        [target.strip() for target in cat_target_weights])
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -1,12 +1,12 @@
 [project]
 name = "notion-tools"
-version = "0.1.0"
-description = "Add your description here"
+version = "0.2.0"
+description = "Notion Tools"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "certifi>=2026.1.4",
+    "certifi>=2026.6.17",
     "loguru>=0.7.3",
-    "notion-client>=3.0.0",
-    "pylitterbot>=2025.1.0",
+    "notion-client>=3.1.0",
+    "pylitterbot>=2025.6.2",
 ]

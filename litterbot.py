@@ -29,7 +29,7 @@ class Whisker:
             cat_weights: The list of weights.
             name: The name of the cat.
             timestamp: The timestamp of the weight record.
-            weight: The weight in lbs.
+            weight_lbs: The weight in lbs.
         """
         cat_weights.append({
             "cat": {
@@ -56,8 +56,9 @@ class Whisker:
         activity_list = await robot.get_activity_history(limit = 10000)
         cutoff = datetime.now(timezone.utc) - timedelta(days=1)
         weights = []
+        bas_weight, jas_weight = 0, 0
 
-        for activity in activity_list:
+        for activity in sorted(activity_list, key=lambda x: x.timestamp):
             if activity.timestamp < cutoff:
                 continue
 
@@ -66,12 +67,26 @@ class Whisker:
                 match = re.search(r"([\d.]+)", action)
                 if match:
                     weight_lbs = float(match.group(1))
-                    if weight_lbs > 11 and weight_lbs <= 13.5:
+                    bas_distance = abs(bas_weight - weight_lbs)
+                    jas_distance = abs(jas_weight - weight_lbs)
+
+                    cat = "Jasmine"
+                    if bas_weight and jas_weight:
+                        if bas_distance < jas_distance:
+                            cat = "Basmati"
+                    elif weight_lbs > 11:
+                        cat = "Basmati"
+                    elif weight_lbs <= 8.5:
+                        cat = None
+
+                    if cat:
                         self.__append_notion_weight(
-                            weights, "Basmati", activity.timestamp, weight_lbs)
-                    elif weight_lbs > 8.5 and weight_lbs <= 11:
-                        self.__append_notion_weight(
-                            weights, "Jasmine", activity.timestamp, weight_lbs)
+                            weights, cat, activity.timestamp, weight_lbs)
+                        
+                        if cat == "Basmati":
+                            bas_weight = weight_lbs
+                        else:
+                            jas_weight = weight_lbs
 
         return weights
 

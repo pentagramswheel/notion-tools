@@ -81,11 +81,12 @@ class Whisker:
                             range(len(cats)), 
                             key=lambda j: abs(prev_weights[j] - weight_lbs))
                     else:
-                        for i in range(target_weights):
-                            if weight_lbs > target_weights[i]:
+                        for i, target_weight in enumerate(target_weights):
+                            if weight_lbs > target_weight:
                                 cat_index = i
+                                break
 
-                    if cat_index:
+                    if cat_index is not None:
                         self.__append_notion_weight(
                             weights, cats[cat_index], activity.timestamp, weight_lbs)
                         prev_weights[cat_index] = weight_lbs

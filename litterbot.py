@@ -51,12 +51,19 @@ class Whisker:
             }
         })
 
-    async def get_recent_weights(self, robot: Robot) -> list:
-        """Extracts the recent weights from a litter robot activity list."""
+    async def get_recent_weights(self, robot: Robot, 
+                                 cats: list, target_weights: list) -> list:
+        """Extracts cats' recent weights from a litter robot activity list.
+        
+        Args:
+            robot: The litter robot to extract weights from.
+            cats: The cats to correspond weights to.
+            target_weights: The cats' corresponding, ideal target weights.
+        """
         activity_list = await robot.get_activity_history(limit = 10000)
         cutoff = datetime.now(timezone.utc) - timedelta(days=1)
         weights = []
-        bas_weight, jas_weight = 0, 0
+        prev_weights = [0 for cat in cats]
 
         for activity in sorted(activity_list, key=lambda x: x.timestamp):
             if activity.timestamp < cutoff:
@@ -67,26 +74,21 @@ class Whisker:
                 match = re.search(r"([\d.]+)", action)
                 if match:
                     weight_lbs = float(match.group(1))
-                    bas_distance = abs(bas_weight - weight_lbs)
-                    jas_distance = abs(jas_weight - weight_lbs)
+                    
+                    cat_index = None
+                    if all(prev_weights):
+                        cat_index = min(
+                            range(len(cats)), 
+                            key=lambda j: abs(prev_weights[j] - weight_lbs))
+                    else:
+                        for i in range(target_weights):
+                            if weight_lbs > target_weights[i]:
+                                cat_index = i
 
-                    cat = "Jasmine"
-                    if bas_weight and jas_weight:
-                        if bas_distance < jas_distance:
-                            cat = "Basmati"
-                    elif weight_lbs > 11:
-                        cat = "Basmati"
-                    elif weight_lbs <= 8.5:
-                        cat = None
-
-                    if cat:
+                    if cat_index:
                         self.__append_notion_weight(
-                            weights, cat, activity.timestamp, weight_lbs)
-                        
-                        if cat == "Basmati":
-                            bas_weight = weight_lbs
-                        else:
-                            jas_weight = weight_lbs
+                            weights, cats[cat_index], activity.timestamp, weight_lbs)
+                        prev_weights[cat_index] = weight_lbs
 
         return weights
 

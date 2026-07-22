@@ -27,7 +27,9 @@ async def main():
     lr_db = LitterBot(client, os.getenv("WEIGHTS_DB_ID"), logger)
     await lr_db.update_weights(
         os.getenv("WHISKER_EMAIL"), 
-        os.getenv("WHISKER_PASSWORD"))
+        os.getenv("WHISKER_PASSWORD"),
+        os.getenv("CAT_NAMES"),
+        os.getenv("CAT_TARGET_WEIGHTS"))
 
 if __name__ == "__main__":
     asyncio.run(main())

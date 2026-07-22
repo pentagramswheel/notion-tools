@@ -208,15 +208,17 @@ class LitterBot(Database):
 
             cursor = response.get("next_cursor")
 
-    async def update_weights(self, email: str, passphrase: str):
+    async def update_weights(self, email: str, passphrase: str, 
+                             cats: list, target_weights: list):
         """Updates the cats' recent weights.
 
         Args:
             email: The email of the Whisker account.
             passphrase: The password of the Whisker account.
+            cats: The cats to update the weights about.
+            target_weights: The cats' corresponding target weights.
         """
-        updated = 0
-        deleted = 0
+        updated, deleted = 0, 0
         account = Whisker()
 
         try:
@@ -227,7 +229,8 @@ class LitterBot(Database):
                 deleted += 1
 
             for robot in robots:
-                recent_weights = await account.get_recent_weights(robot)
+                recent_weights = await account.get_recent_weights(
+                    robot, cats, target_weights)
                 
                 for weight in recent_weights:
                     await self._create_database_page(weight)

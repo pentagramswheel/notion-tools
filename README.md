@@ -23,7 +23,13 @@ uv run main.py
 
 ## Usage
 
-Open `main.py` to get started. The `main()` entry point interacts with a CI/CD platform of choice to run a schedule of tasks with Notion. This is an ongoing project, but current features include:
+### Quick Start
+
+1. Configure `.env` according to `.env.example`.
+2. Run `main.py` to get started. 
+
+### Commentary
+The `main()` entry point can also interact with a CI/CD platform of choice to run a schedule of tasks with Notion. This is an ongoing project, but current features include:
 - Dynamic chore tracking for families
 - Whisker automatic litter box analytics tracking
 

@@ -84,6 +84,7 @@ class Whisker:
                         for i, target_weight in enumerate(target_weights):
                             if weight_lbs > target_weight:
                                 cat_index = i
+                            else:
                                 break
 
                     if cat_index is not None:

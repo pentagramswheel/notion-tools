@@ -15,7 +15,8 @@ jobs:
       WEIGHTS_DB_ID: ${{ secrets.WEIGHTS_DB_ID }}
       WHISKER_EMAIL: ${{ secrets.WHISKER_EMAIL }}
       WHISKER_PASSWORD: ${{ secrets.WHISKER_PASSWORD }}
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # remove after jun 2026
+      CAT_NAMES: ${{ secrets.CAT_NAMES }}
+      CAT_TARGET_WEIGHTS: ${{ secrets.CAT_TARGET_WEIGHTS }}
 
     steps:
       - name: Checkout repository
